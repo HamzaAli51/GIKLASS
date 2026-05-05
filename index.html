@@ -1,28 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GIKLASS - Modern Learning Workspace</title>
-    <link rel="stylesheet" href="/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@800&display=swap" rel="stylesheet">
-    <meta name="description" content="GIKLASS - Your modern learning workspace at GIKI">
-</head>
-<body>
-    <div id="app">
-        <!-- App renders here -->
-    </div>
-
-    <!-- Modal System -->
-    <div id="modal-container" class="modal-overlay" role="dialog" aria-modal="true" aria-hidden="true">
-        <div class="modal-content">
-            <button id="close-modal" class="modal-close" aria-label="Close modal">&times;</button>
-            <div id="modal-body"></div>
-        </div>
-    </div>
-
-    <script type="module" src="/main.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GIKLASS</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
+
