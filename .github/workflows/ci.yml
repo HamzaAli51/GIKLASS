@@ -35,4 +35,4 @@ jobs:
         run: sleep 5
 
       - name: Run tests
-        run: node --experimental-vm-modules node_modules/.bin/jest
+        run: node --no-warnings --experimental-vm-modules node_modules/.bin/jest
