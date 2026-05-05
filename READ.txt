@@ -1,0 +1,417 @@
+================================================================
+SE202L - DEVELOPMENT OPERATIONS LAB
+SEMESTER PROJECT INSTRUCTIONS
+GHULAM ISHAQ KHAN INSTITUTE (GIKI)
+================================================================
+Course Code     : SE202L
+Course Title    : Development Operations Lab
+Class & Section : BS (CS) - Spring 2026
+Instructor      : M. Naeem
+Group Members   : 3 or less
+Submission      : One week before final exams
+================================================================
+
+PROJECT OVERVIEW
+----------------------------------------------------------------
+Build a Containerized Web Application with a Complete DevOps 
+Pipeline that demonstrates end-to-end automation of application 
+deployment using DevOps practices.
+
+We are building a Simple Flask To-Do Web Application deployed 
+using Docker, GitHub Actions CI/CD, and AWS EC2.
+
+================================================================
+TOOLS REQUIRED
+================================================================
+1. Git              - Version control
+2. GitHub Account   - Remote repository
+3. Python           - For Flask web app
+4. Docker Desktop   - For containerization
+5. VS Code          - Code editor
+6. AWS Account      - For cloud deployment (free tier)
+
+Download Links:
+- Git        : https://git-scm.com
+- Python     : https://python.org
+- VS Code    : https://code.visualstudio.com
+- Docker     : https://docker.com
+
+================================================================
+PROJECT STRUCTURE
+================================================================
+
+SE202L-DevOps-Project/
+│
+├── app.py                        (Flask web application)
+├── requirements.txt              (Python dependencies)
+├── Dockerfile                    (Docker image instructions)
+├── docker-compose.yml            (Multi-service Docker setup)
+├── README.md                     (Project documentation)
+├── templates/
+│   └── index.html                (Frontend HTML page)
+└── .github/
+    └── workflows/
+        └── ci-cd.yml             (GitHub Actions pipeline)
+
+================================================================
+PHASE 1 - SETUP & VERSION CONTROL (Day 1)
+================================================================
+
+STEP 1: Install all required tools listed above
+
+STEP 2: Create GitHub Repository
+---------------------------------
+- Go to github.com and login
+- Click + → New Repository
+- Name: SE202L-DevOps-Project
+- Set to Public
+- Check Add README file
+- Click Create Repository
+
+STEP 3: Add Teammates as Collaborators
+---------------------------------------
+- Go to repo → Settings → Collaborators
+- Click Add people
+- Add Member 2 and Member 3 by GitHub username
+- They must accept the email invitation
+
+STEP 4: Set Git Identity (Every Member Does This)
+--------------------------------------------------
+git config --global user.name "Your Full Name"
+git config --global user.email "your-github-email@gmail.com"
+
+NOTE: Use same email as your GitHub account!
+
+STEP 5: Clone the Repository (Every Member Does This)
+------------------------------------------------------
+git clone https://github.com/YourUsername/SE202L-DevOps-Project.git
+cd SE202L-DevOps-Project
+
+STEP 6: Create Your Own Branch
+--------------------------------
+git checkout -b feature/your-name
+Example:
+git checkout -b feature/ahmed
+git checkout -b feature/ali
+git checkout -b feature/usman
+
+================================================================
+PHASE 2 - BUILD FLASK WEB APPLICATION (Day 2-3)
+================================================================
+Responsible: Member 1
+
+STEP 7: Create app.py
+----------------------
+from flask import Flask, render_template, request, redirect
+
+app = Flask(__name__)
+todos = []
+
+@app.route('/')
+def index():
+    return render_template('index.html', todos=todos)
+
+@app.route('/add', methods=['POST'])
+def add():
+    todo = request.form.get('todo')
+    if todo:
+        todos.append(todo)
+    return redirect('/')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
+STEP 8: Create requirements.txt
+---------------------------------
+flask==2.3.0
+
+STEP 9: Create templates/index.html
+-------------------------------------
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SE202L DevOps To-Do App</title>
+</head>
+<body>
+    <h1>SE202L To-Do App</h1>
+    <form action="/add" method="post">
+        <input type="text" name="todo" placeholder="Enter task">
+        <button type="submit">Add Task</button>
+    </form>
+    <ul>
+        {% for todo in todos %}
+        <li>{{ todo }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+
+STEP 10: Test App Locally
+--------------------------
+pip install flask
+python app.py
+Open browser: http://localhost:5000
+
+STEP 11: Commit Flask App
+--------------------------
+git add .
+git commit -m "Added Flask app structure - Member1Name"
+git push origin feature/member1name
+
+STEP 12: Create Pull Request on GitHub
+----------------------------------------
+- Go to repo on github.com
+- Click Compare & pull request
+- Click Create pull request
+- Click Merge pull request
+
+================================================================
+PHASE 3 - DOCKERIZE THE APPLICATION (Day 4)
+================================================================
+Responsible: Member 2
+
+STEP 13: Pull Latest Changes
+------------------------------
+git checkout main
+git pull origin main
+git checkout -b feature/docker
+
+STEP 14: Create Dockerfile
+----------------------------
+FROM python:3.9-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY . .
+EXPOSE 5000
+CMD ["python", "app.py"]
+
+STEP 15: Create docker-compose.yml
+------------------------------------
+version: '3'
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+
+STEP 16: Test Docker Locally
+------------------------------
+docker build -t todo-app .
+docker run -p 5000:5000 todo-app
+Open browser: http://localhost:5000
+
+STEP 17: Commit Docker Files
+------------------------------
+git add .
+git commit -m "Added Dockerfile and Docker Compose - Member2Name"
+git push origin feature/docker
+Then create Pull Request and Merge on GitHub
+
+================================================================
+PHASE 4 - CI/CD PIPELINE WITH GITHUB ACTIONS (Day 5)
+================================================================
+Responsible: Member 3
+
+STEP 18: Pull Latest Changes
+------------------------------
+git checkout main
+git pull origin main
+git checkout -b feature/cicd
+
+STEP 19: Create .github/workflows/ci-cd.yml
+--------------------------------------------
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker Image
+        run: docker build -t todo-app .
+
+      - name: Run Container Test
+        run: |
+          docker run -d -p 5000:5000 --name test-container todo-app
+          sleep 5
+          curl http://localhost:5000 || exit 1
+          docker stop test-container
+
+STEP 20: Commit CI/CD Pipeline
+--------------------------------
+git add .
+git commit -m "Added GitHub Actions CI/CD pipeline - Member3Name"
+git push origin feature/cicd
+Then create Pull Request and Merge on GitHub
+
+STEP 21: Verify Pipeline Ran Successfully
+------------------------------------------
+- Go to GitHub repo
+- Click Actions tab
+- You should see green checkmark on pipeline
+
+================================================================
+PHASE 5 - AWS EC2 CLOUD DEPLOYMENT (Day 6-7)
+================================================================
+Responsible: All Members Together
+
+STEP 22: Create AWS Account
+-----------------------------
+- Go to aws.amazon.com
+- Sign up for free tier account
+
+STEP 23: Launch EC2 Instance
+------------------------------
+- Go to EC2 → Launch Instance
+- Name: devops-project-server
+- AMI: Ubuntu 22.04 (Free tier)
+- Instance type: t2.micro (Free tier)
+- Create Key Pair → Download .pem file (keep it safe!)
+- Security Group: Allow port 22 (SSH) and port 5000 (App)
+- Click Launch Instance
+
+STEP 24: Connect to EC2 via SSH
+---------------------------------
+chmod 400 your-key.pem
+ssh -i your-key.pem ubuntu@your-ec2-public-ip
+
+STEP 25: Install Docker on EC2
+--------------------------------
+sudo apt update
+sudo apt install docker.io -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker ubuntu
+exit
+ssh -i your-key.pem ubuntu@your-ec2-public-ip
+
+STEP 26: Deploy App on EC2
+----------------------------
+sudo apt install git -y
+git clone https://github.com/YourUsername/SE202L-DevOps-Project.git
+cd SE202L-DevOps-Project
+docker build -t todo-app .
+docker run -d -p 5000:5000 todo-app
+
+STEP 27: Access Your Live App
+-------------------------------
+Open browser: http://your-ec2-public-ip:5000
+Your app is now live on the internet!
+
+================================================================
+PHASE 6 - DOCUMENTATION & REPORT (Day 8)
+================================================================
+Responsible: All Members
+
+STEP 28: Update README.md on GitHub
+-------------------------------------
+Include:
+- Project title
+- Group member names and registration numbers
+- Project description
+- Tech stack used
+- How to run locally
+- Live URL of EC2 deployment
+
+STEP 29: Write Word Report
+---------------------------
+Include the following:
+- Cover page with group details
+- System architecture diagram
+- Implementation steps with screenshots
+- GitHub repository link and commit history screenshot
+- Docker build and run screenshots
+- GitHub Actions pipeline success screenshot
+- EC2 deployment screenshot
+- Live app running in browser screenshot
+
+================================================================
+COMMIT PLAN FOR EACH MEMBER
+================================================================
+
+Member 1 (Flask App Developer):
+  Day 1 → "Initial project structure setup"
+  Day 2 → "Created Flask app with routes"
+  Day 3 → "Added HTML templates for frontend"
+  Day 8 → "Updated README with setup instructions"
+
+Member 2 (Docker):
+  Day 2 → "Added requirements.txt"
+  Day 4 → "Created Dockerfile for containerization"
+  Day 4 → "Added Docker Compose configuration"
+  Day 6 → "Fixed Docker container port configuration"
+
+Member 3 (CI/CD and AWS):
+  Day 5 → "Created GitHub Actions workflow"
+  Day 5 → "Fixed CI/CD pipeline build error"
+  Day 7 → "Added EC2 deployment steps to README"
+  Day 8 → "Final cleanup and documentation"
+
+================================================================
+MARKING CRITERIA
+================================================================
+
+1. Documentation & GitHub         → 20%
+   - Proper Word report
+   - GitHub commits from all members
+   - README documentation
+
+2. Implementation & DevOps Pipeline → 40%
+   - Docker working
+   - CI/CD pipeline running
+   - AWS EC2 deployment
+   - Terraform (optional bonus)
+
+3. Project Viva & Demonstration   → 40%
+   - Live working pipeline demo
+   - Understanding of all tools
+   - Answer instructor questions
+
+================================================================
+FINAL SUBMISSION CHECKLIST
+================================================================
+
+[ ] GitHub repo is Public
+[ ] All 3 members have commits on different days
+[ ] Feature branches were created and merged via Pull Requests
+[ ] README.md is complete with all details
+[ ] app.py Flask app is working
+[ ] requirements.txt is present
+[ ] templates/index.html is created
+[ ] Dockerfile is written and tested
+[ ] docker-compose.yml is present
+[ ] GitHub Actions pipeline runs successfully (green checkmark)
+[ ] AWS EC2 instance is running
+[ ] App is accessible on browser via EC2 public IP
+[ ] Word report with all screenshots is ready
+[ ] All files uploaded to GitHub repository
+
+================================================================
+IMPORTANT RULES
+================================================================
+
+1. Each member must commit from their OWN GitHub account
+2. Do NOT commit everything in one day - spread over multiple days
+3. Never commit directly to main - always use feature branches
+4. Project title cannot be changed once registered
+5. No two groups can have the same project title
+6. Maximum 3 members per group
+7. Late submission will result in penalty or zero marks
+8. Online form submission deadline: 05-May-2026
+
+================================================================
+END OF INSTRUCTIONS
+================================================================

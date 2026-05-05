@@ -1,10 +1,11 @@
-### RUN LOCALLY
+// Reg No 2024586
 
-1. Install Node in you PC
-2. open this folder with VSCode
-3. Install dependencies:
+## Run Locally
+
+**Prerequisites:** Node.js
+
+1. Install dependencies:
    `npm install`
-4. make a .env file and paste as it is
-   JWT_SECRET=your_random_secret_string_here
-5. Run the app:
-   `npm run dev` -> in terminal
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
