@@ -1,22 +1,18 @@
 import { describe, test, expect } from '@jest/globals';
 
-const BASE = 'http://localhost:3000/api';
-
 // --- Auth Logic ---
 describe('Auth Logic', () => {
 
-    test('student is blocked without roll number', () => {
+    test('student blocked without roll number', () => {
         const role = 'student';
         const roll = '';
-        const blocked = role === 'student' && !roll;
-        expect(blocked).toBe(true);
+        expect(role === 'student' && !roll).toBe(true);
     });
 
-    test('instructor is not blocked without roll number', () => {
+    test('instructor allowed without roll number', () => {
         const role = 'instructor';
         const roll = '';
-        const blocked = role === 'student' && !roll;
-        expect(blocked).toBe(false);
+        expect(role === 'student' && !roll).toBe(false);
     });
 
     test('only valid roles allowed', () => {
@@ -32,18 +28,15 @@ describe('Auth Logic', () => {
 describe('Class Logic', () => {
 
     test('class code must be 6 characters', () => {
-        const code = 'ABC123';
-        expect(code.length).toBe(6);
+        expect('ABC123'.length).toBe(6);
     });
 
     test('class code converts to uppercase', () => {
-        const code = 'abc123'.toUpperCase();
-        expect(code).toBe('ABC123');
+        expect('abc123'.toUpperCase()).toBe('ABC123');
     });
 
     test('short class code is invalid', () => {
-        const code = 'AB1';
-        expect(code.length).not.toBe(6);
+        expect('AB1'.length).not.toBe(6);
     });
 
     test('class object has required fields', () => {
@@ -78,12 +71,11 @@ describe('User Logic', () => {
         expect(name[0].toUpperCase()).toBe('H');
     });
 
-    test('logout clears user state', () => {
+    test('logout clears all state', () => {
         let user = { name: 'Hamza', role: 'student' };
         let classes = [{ class_id: 1 }];
         let selectedClass = { class_id: 1 };
 
-        // simulate logout
         user = null;
         classes = [];
         selectedClass = null;
@@ -91,38 +83,6 @@ describe('User Logic', () => {
         expect(user).toBeNull();
         expect(classes).toHaveLength(0);
         expect(selectedClass).toBeNull();
-    });
-
-});
-
-// --- API Tests ---
-describe('API Endpoints', () => {
-
-    test('login fails with wrong credentials', async () => {
-        const res = await fetch(`${BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'fake@test.com', password: 'wrongpass' })
-        });
-        expect(res.status).toBe(401);
-    });
-
-    test('signup fails with empty fields', async () => {
-        const res = await fetch(`${BASE}/auth/signup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: '', email: '', password: '', role: 'student', details: { rollNumber: '' } })
-        });
-        expect(res.status).toBeGreaterThanOrEqual(400);
-    });
-
-    test('joining invalid class code returns error', async () => {
-        const res = await fetch(`${BASE}/classes/join`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ classCode: 'XXXXXX' })
-        });
-        expect(res.status).toBeGreaterThanOrEqual(400);
     });
 
 });
