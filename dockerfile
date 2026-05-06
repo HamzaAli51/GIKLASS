@@ -1,31 +1,33 @@
-# Stage 1 - Build (No changes needed here)
+# Stage 1 - Build frontend and prepare source
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+# Generates the 'dist' folder for the frontend
 RUN npm run build
 
-# Stage 2 - Run server
+# Stage 2 - Production Runner
 FROM node:20-alpine AS runner
 WORKDIR /app
-COPY package*.json ./
 
-# Install production dependencies
+# Ensure Express serves the production build
+ENV NODE_ENV=production
+
+# Install only production dependencies to save space
+COPY package*.json ./
 RUN npm install --omit=dev
 
-# Copy built frontend assets
+# Copy build artifacts and necessary source files from builder
 COPY --from=builder /app/dist ./dist
-
-# --- FIX START ---
-# Copy the source folder so server.ts can find its imports
 COPY --from=builder /app/src ./src
-# Copy the entry point
 COPY --from=builder /app/server.ts ./server.ts
-# --- FIX END ---
 
-# Install tsx to run TypeScript server
+# Install tsx to execute the TypeScript server
 RUN npm install tsx
 
+# Expose the internal container port
 EXPOSE 3000
+
+# Start the application
 CMD ["npx", "tsx", "server.ts"]
