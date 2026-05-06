@@ -1,96 +1,13 @@
 <!doctype html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GIKLASS</title>
-    <style>
-        /* CSS from your project */
-        :root { --primary: #2563eb; --primary-light: #3b82f6; --bg: #f8fafc; --text: #1e293b; --border: #e2e8f0; }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); margin: 0; }
-        .auth-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-        .auth-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); width: 100%; max-width: 400px; }
-        .btn { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; width: 100%; font-weight: 600; }
-        .btn-primary { background: var(--primary); color: white; }
-        /* Add more of your CSS variables and classes here */
-    </style>
-</head>
-<body>
-    <div id="app"></div>
-    
-    <div id="modal-container" style="display:none;">
-        <div id="modal-body"></div>
-        <button id="close-modal">Close</button>
-    </div>
-
-    <script type="module">
-        // Your GIKLASS Vanilla Frontend Logic
-        const API_BASE = '/api';
-        let user = null;
-        let currentView = 'landing';
-        let classes = [];
-
-        const app = document.getElementById('app');
-
-        async function checkAuth() {
-            try {
-                const res = await fetch(`${API_BASE}/auth/me`);
-                if (res.ok) {
-                    const data = await res.json();
-                    user = { name: data.name, role: data.role };
-                    setView('dashboard');
-                } else {
-                    setView('landing');
-                }
-            } catch (e) {
-                console.warn('Auth check failed:', e);
-                setView('landing');
-            }
-        }
-
-        function setView(view) {
-            currentView = view;
-            render();
-        }
-
-        function render() {
-            if (currentView === 'landing') renderLanding();
-            else if (currentView === 'login') renderLogin();
-            else if (currentView === 'dashboard') renderDashboard();
-            // ... add other render functions from your main.js
-        }
-
-        function renderLanding() {
-            app.innerHTML = `
-                <div class="auth-wrapper">
-                    <div class="auth-card">
-                        <h1>GIKLASS</h1>
-                        <p>Simplified learning.</p>
-                        <button class="btn btn-primary" onclick="window.setView('login')">Open GIKLASS</button>
-                    </div>
-                </div>`;
-        }
-
-        function renderLogin() {
-            app.innerHTML = `
-                <div class="auth-wrapper">
-                    <div class="auth-card">
-                        <h2>Welcome back</h2>
-                        <form id="login-form">
-                            <input type="email" id="login-email" required placeholder="Email">
-                            <input type="password" id="login-password" required placeholder="Password">
-                            <button type="submit" class="btn btn-primary">Sign in</button>
-                        </form>
-                    </div>
-                </div>`;
-            document.getElementById('login-form').onsubmit = handleLogin;
-        }
-
-        // Export to window so 'onclick' attributes can find them
-        window.setView = setView;
-        
-        // Initial bootstrap
-        checkAuth();
-    </script>
-</body>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
+
