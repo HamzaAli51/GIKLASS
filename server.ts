@@ -26,23 +26,34 @@ async function startServer() {
   app.use('/api/classes', classRoutes);
   app.use('/api/messages', messageRoutes);
 
-  // Vite middleware for development
+  // --- REVISED ENVIRONMENT LOGIC ---
   if (process.env.NODE_ENV !== 'production') {
+    // Vite middleware for development
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    /**
+     * PRODUCTION MODE
+     * Serves the single-file index.html for all non-API routes.
+     * Use __dirname to ensure the path is absolute within the container.
+     */
+    const indexPath = path.join(__dirname, 'index.html');
+    
+    // Serve any additional static assets if they exist in the root
+    app.use(express.static(__dirname));
+
+    // Fallback for Single Page Application (SPA) routing
     app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      res.sendFile(indexPath);
     });
   }
 
+  // Bind to 0.0.0.0 to ensure visibility outside the Docker container [cite: 47, 76]
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT} (Production: ${process.env.NODE_ENV === 'production'})`);
   });
 }
 
