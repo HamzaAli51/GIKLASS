@@ -16,7 +16,6 @@ jobs:
 
       - name: Build Docker image
         run: |
-          cd GIKLASS
           docker build -t giklass:latest .
           echo "✅ Docker image built successfully"
           docker images | grep giklass
