@@ -18,7 +18,7 @@ const authenticate = (req: any, res: any, next: any) => {
 };
 
 // Get stream for a specific class
-router.get('/:classId', authenticate, async (req: any, res) => {
+router.get('/:classId(\\d+)', authenticate, async (req: any, res) => {
   const { classId } = req.params;
   try {
     const messages = await db.prepare(`
@@ -167,18 +167,20 @@ router.get('/all-assignments', authenticate, async (req: any, res) => {
     let assignments;
     if (role === 'student') {
       assignments = await db.prepare(`
-        SELECT m.*, u.name as sender_name, c.name as class_name
+        SELECT m.*, u.name as sender_name, c.name as class_name,
+          CASE WHEN submission.submission_id IS NULL THEN 0 ELSE 1 END as submitted
         FROM message m
         JOIN user u ON m.sender_id = u.user_id
         JOIN class c ON m.class_id = c.class_id
         JOIN enrollment e ON c.class_id = e.class_id
         JOIN student s ON e.student_id = s.student_id
+        LEFT JOIN submission ON submission.message_id = m.message_id AND submission.student_id = ?
         WHERE s.user_id = ? AND m.type = 'assignment'
         ORDER BY m.due_date ASC
-      `).all(userId);
+      `).all(userId, userId);
     } else {
       assignments = await db.prepare(`
-        SELECT m.*, u.name as sender_name, c.name as class_name
+        SELECT m.*, u.name as sender_name, c.name as class_name, 0 as submitted
         FROM message m
         JOIN user u ON m.sender_id = u.user_id
         JOIN class c ON m.class_id = c.class_id

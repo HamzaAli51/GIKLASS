@@ -15,19 +15,22 @@ interface QueryDatabase {
 }
 
 function createDatabase(executor: Pick<typeof client, 'execute' | 'executeMultiple'>) {
+  const execute = (sql: string, args: any[]) =>
+    executor.execute({ sql, args: args.map((value) => value ?? null) });
+
   return {
   prepare(sql: string) {
     return {
       get: async (...args: any[]) => {
-        const r = await executor.execute({ sql, args });
+        const r = await execute(sql, args);
         return r.rows[0] ? ({ ...r.rows[0] } as any) : undefined;
       },
       all: async (...args: any[]) => {
-        const r = await executor.execute({ sql, args });
+        const r = await execute(sql, args);
         return r.rows.map((row) => ({ ...row })) as any[];
       },
       run: async (...args: any[]) => {
-        const r = await executor.execute({ sql, args });
+        const r = await execute(sql, args);
         return { changes: r.rowsAffected, lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
       },
     };

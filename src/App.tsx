@@ -32,6 +32,7 @@ interface Message {
   attachments?: string; // JSON string
   sent_at: string;
   comments: Comment[];
+  submitted?: boolean | number;
 }
 
 interface Comment {
@@ -61,9 +62,10 @@ const TodoView = ({ assignments, onSelect }: { assignments: (Message & { class_n
   
   const filtered = assignments.filter(a => {
     const isPast = a.due_date ? new Date(a.due_date) < new Date() : false;
-    if (activeFilter === 'assigned') return !isPast;
-    if (activeFilter === 'missing') return isPast;
-    return false;
+    const isSubmitted = Boolean(a.submitted);
+    if (activeFilter === 'assigned') return !isSubmitted && !isPast;
+    if (activeFilter === 'missing') return !isSubmitted && isPast;
+    return isSubmitted;
   });
 
   return (
