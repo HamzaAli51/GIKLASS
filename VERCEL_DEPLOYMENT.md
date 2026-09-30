@@ -4,7 +4,7 @@
 
 1. Push the repository to GitHub and import it in Vercel.
 2. Set **Root Directory** to `GIKLASS`, the inner folder containing this file, `package.json`, and `vercel.json`.
-3. Keep the Vite framework preset. The build command and output directory are already set in `vercel.json`.
+3. Select the Express framework preset. Keep the build command as `npm run build` and leave **Output Directory** unset; Vite writes static files to `public` for Vercel to serve.
 4. Add these environment variables for Production (and Preview if needed):
 
    - `TURSO_DATABASE_URL`: the URL of your Turso database.
