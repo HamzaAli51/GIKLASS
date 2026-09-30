@@ -600,7 +600,14 @@ export default function App() {
           details 
         }),
       });
-      const data = await res.json();
+      const responseText = await res.text();
+      let data: { error?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        setError(`Signup API returned HTTP ${res.status} instead of JSON. Check the Vercel API deployment.`);
+        return;
+      }
       if (res.ok) {
         // Reset state before showing dashboard
         setClasses([]);
@@ -612,10 +619,10 @@ export default function App() {
         setUser({ name, role });
         setScreen('dashboard');
       } else {
-        setError(data.error);
+        setError(data.error || `Signup failed with HTTP ${res.status}`);
       }
-    } catch (e) {
-      setError('Connection failed');
+    } catch (error) {
+      setError(error instanceof Error ? `Signup request failed: ${error.message}` : 'Signup request failed');
     } finally {
       setIsLoading(false);
     }
