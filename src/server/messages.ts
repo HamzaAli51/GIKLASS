@@ -18,10 +18,10 @@ const authenticate = (req: any, res: any, next: any) => {
 };
 
 // Get stream for a specific class
-router.get('/:classId', authenticate, (req: any, res) => {
+router.get('/:classId', authenticate, async (req: any, res) => {
   const { classId } = req.params;
   try {
-    const messages = db.prepare(`
+    const messages = await db.prepare(`
       SELECT m.*, u.name as sender_name
       FROM message m
       JOIN user u ON m.sender_id = u.user_id
@@ -29,8 +29,8 @@ router.get('/:classId', authenticate, (req: any, res) => {
       ORDER BY m.sent_at DESC
     `).all(classId);
 
-    const messagesWithComments = messages.map((m: any) => {
-      const comments = db.prepare(`
+    const messagesWithComments = await Promise.all(messages.map(async (m: any) => {
+      const comments = await db.prepare(`
         SELECT c.*, u.name as sender_name
         FROM comment c
         JOIN user u ON c.sender_id = u.user_id
@@ -38,7 +38,7 @@ router.get('/:classId', authenticate, (req: any, res) => {
         ORDER BY c.sent_at ASC
       `).all(m.message_id);
       return { ...m, comments };
-    });
+    }));
 
     res.json(messagesWithComments);
   } catch (error) {
@@ -47,7 +47,7 @@ router.get('/:classId', authenticate, (req: any, res) => {
 });
 
 // Post a message (Announcement/Assignment)
-router.post('/:classId', authenticate, (req: any, res) => {
+router.post('/:classId', authenticate, async (req: any, res) => {
   const { classId } = req.params;
   const { content, title, type, dueDate, attachments } = req.body;
   const { userId, role } = req.user;
@@ -57,7 +57,7 @@ router.post('/:classId', authenticate, (req: any, res) => {
   }
 
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO message (class_id, sender_id, content, title, type, due_date, attachments)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(classId, userId, content, title, type || 'announcement', dueDate, JSON.stringify(attachments || []));
@@ -70,13 +70,13 @@ router.post('/:classId', authenticate, (req: any, res) => {
 });
 
 // Add a comment
-router.post('/comment/:messageId', authenticate, (req: any, res) => {
+router.post('/comment/:messageId', authenticate, async (req: any, res) => {
   const { messageId } = req.params;
   const { content } = req.body;
   const { userId } = req.user;
 
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO comment (message_id, sender_id, content)
       VALUES (?, ?, ?)
     `).run(messageId, userId, content);
@@ -88,7 +88,7 @@ router.post('/comment/:messageId', authenticate, (req: any, res) => {
 });
 
 // Submit an assignment
-router.post('/submit/:messageId', authenticate, (req: any, res) => {
+router.post('/submit/:messageId', authenticate, async (req: any, res) => {
   const { messageId } = req.params;
   const { content, attachments } = req.body;
   const { userId, role } = req.user;
@@ -96,7 +96,7 @@ router.post('/submit/:messageId', authenticate, (req: any, res) => {
   if (role !== 'student') return res.status(403).json({ error: 'Only students can submit work' });
 
   try {
-    db.prepare(`
+    await db.prepare(`
       INSERT INTO submission (message_id, student_id, content, attachments)
       VALUES (?, ?, ?, ?)
       ON CONFLICT(message_id, student_id) DO UPDATE SET
@@ -113,13 +113,13 @@ router.post('/submit/:messageId', authenticate, (req: any, res) => {
 });
 
 // Get submissions for an assignment (Instructor only, or Student can see their own)
-router.get('/submissions/:messageId', authenticate, (req: any, res) => {
+router.get('/submissions/:messageId', authenticate, async (req: any, res) => {
   const { messageId } = req.params;
   const { userId, role } = req.user;
 
   try {
     if (role === 'instructor') {
-      const submissions = db.prepare(`
+      const submissions = await db.prepare(`
         SELECT s.*, u.name as student_name
         FROM submission s
         JOIN user u ON s.student_id = u.user_id
@@ -128,7 +128,7 @@ router.get('/submissions/:messageId', authenticate, (req: any, res) => {
       `).all(messageId);
       res.json(submissions);
     } else {
-      const submission = db.prepare(`
+      const submission = await db.prepare(`
         SELECT * FROM submission WHERE message_id = ? AND student_id = ?
       `).get(messageId, userId);
       res.json(submission ? [submission] : []);
@@ -139,7 +139,7 @@ router.get('/submissions/:messageId', authenticate, (req: any, res) => {
 });
 
 // Grade a submission
-router.post('/grade/:submissionId', authenticate, (req: any, res) => {
+router.post('/grade/:submissionId', authenticate, async (req: any, res) => {
   const { submissionId } = req.params;
   const { grade, feedback } = req.body;
   const { role } = req.user;
@@ -147,7 +147,7 @@ router.post('/grade/:submissionId', authenticate, (req: any, res) => {
   if (role !== 'instructor') return res.status(403).json({ error: 'Only instructors can grade' });
 
   try {
-    db.prepare(`
+    await db.prepare(`
       UPDATE submission 
       SET grade = ?, feedback = ?, graded_at = CURRENT_TIMESTAMP
       WHERE submission_id = ?
@@ -160,13 +160,13 @@ router.post('/grade/:submissionId', authenticate, (req: any, res) => {
 });
 
 // Get all assignments across all classes for the user
-router.get('/all-assignments', authenticate, (req: any, res) => {
+router.get('/all-assignments', authenticate, async (req: any, res) => {
   const { userId, role } = req.user;
 
   try {
     let assignments;
     if (role === 'student') {
-      assignments = db.prepare(`
+      assignments = await db.prepare(`
         SELECT m.*, u.name as sender_name, c.name as class_name
         FROM message m
         JOIN user u ON m.sender_id = u.user_id
@@ -177,7 +177,7 @@ router.get('/all-assignments', authenticate, (req: any, res) => {
         ORDER BY m.due_date ASC
       `).all(userId);
     } else {
-      assignments = db.prepare(`
+      assignments = await db.prepare(`
         SELECT m.*, u.name as sender_name, c.name as class_name
         FROM message m
         JOIN user u ON m.sender_id = u.user_id

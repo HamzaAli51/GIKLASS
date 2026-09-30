@@ -22,25 +22,25 @@ const authenticate = (req: any, res: any, next: any) => {
 const generateCode = () => Math.random().toString(36).substring(2, 8).toUpperCase();
 
 // Get user classes
-router.get('/', authenticate, (req: any, res) => {
+router.get('/', authenticate, async (req: any, res) => {
   const { userId, role } = req.user;
 
   try {
     let classes;
     if (role === 'instructor') {
-      const instructor = db.prepare('SELECT instructor_id FROM instructor WHERE user_id = ?').get(userId) as any;
+      const instructor = await db.prepare('SELECT instructor_id FROM instructor WHERE user_id = ?').get(userId) as any;
       if (!instructor) return res.status(404).json({ error: 'Instructor profile not found' });
       
-      classes = db.prepare(`
+      classes = await db.prepare(`
         SELECT c.*, (SELECT COUNT(*) FROM enrollment e WHERE e.class_id = c.class_id) as student_count
         FROM class c 
         WHERE c.instructor_id = ?
       `).all(instructor.instructor_id);
     } else {
-      const student = db.prepare('SELECT student_id FROM student WHERE user_id = ?').get(userId) as any;
+      const student = await db.prepare('SELECT student_id FROM student WHERE user_id = ?').get(userId) as any;
       if (!student) return res.status(404).json({ error: 'Student profile not found' });
 
-      classes = db.prepare(`
+      classes = await db.prepare(`
         SELECT c.*, u.name as instructor_name
         FROM class c
         JOIN enrollment e ON c.class_id = e.class_id
@@ -57,7 +57,7 @@ router.get('/', authenticate, (req: any, res) => {
 });
 
 // Create Class (Instructor only)
-router.post('/create', authenticate, (req: any, res) => {
+router.post('/create', authenticate, async (req: any, res) => {
   if (req.user.role !== 'instructor') return res.status(403).json({ error: 'Only instructors can create classes' });
   
   const { name, subject, title } = req.body;
@@ -66,12 +66,12 @@ router.post('/create', authenticate, (req: any, res) => {
   const { userId } = req.user;
 
   try {
-    const instructor = db.prepare('SELECT instructor_id FROM instructor WHERE user_id = ?').get(userId) as any;
+    const instructor = await db.prepare('SELECT instructor_id FROM instructor WHERE user_id = ?').get(userId) as any;
     if (!instructor) return res.status(404).json({ error: 'Instructor profile not found' });
 
     const classCode = generateCode();
 
-    const result = db.prepare(
+    const result = await db.prepare(
       'INSERT INTO class (instructor_id, name, subject, title, class_code) VALUES (?, ?, ?, ?, ?)'
     ).run(instructor.instructor_id, name, subject, title, classCode);
 
@@ -83,7 +83,7 @@ router.post('/create', authenticate, (req: any, res) => {
 });
 
 // Join Class (Student only)
-router.post('/join', authenticate, (req: any, res) => {
+router.post('/join', authenticate, async (req: any, res) => {
   if (req.user.role !== 'student') return res.status(403).json({ error: 'Only students can join classes' });
   
   const { classCode } = req.body;
@@ -92,13 +92,13 @@ router.post('/join', authenticate, (req: any, res) => {
   const { userId } = req.user;
 
   try {
-    const cls = db.prepare('SELECT class_id FROM class WHERE class_code = ?').get(classCode.trim().toUpperCase()) as any;
+    const cls = await db.prepare('SELECT class_id FROM class WHERE class_code = ?').get(classCode.trim().toUpperCase()) as any;
     if (!cls) return res.status(404).json({ error: 'Invalid class code' });
 
-    const student = db.prepare('SELECT student_id FROM student WHERE user_id = ?').get(userId) as any;
+    const student = await db.prepare('SELECT student_id FROM student WHERE user_id = ?').get(userId) as any;
     if (!student) return res.status(404).json({ error: 'Student profile not found' });
     
-    db.prepare(
+    await db.prepare(
       'INSERT INTO enrollment (student_id, class_id) VALUES (?, ?)'
     ).run(student.student_id, cls.class_id);
 
@@ -113,12 +113,12 @@ router.post('/join', authenticate, (req: any, res) => {
 });
 
 // Get class people (Instructor and Students)
-router.get('/people/:classId', authenticate, (req: any, res) => {
+router.get('/people/:classId', authenticate, async (req: any, res) => {
   const { classId } = req.params;
 
   try {
     // 1. Get Instructor
-    const instructor = db.prepare(`
+    const instructor = await db.prepare(`
       SELECT u.name, u.email, 'instructor' as role
       FROM class c
       JOIN instructor i ON c.instructor_id = i.instructor_id
@@ -127,7 +127,7 @@ router.get('/people/:classId', authenticate, (req: any, res) => {
     `).get(classId);
 
     // 2. Get Students
-    const students = db.prepare(`
+    const students = await db.prepare(`
       SELECT u.name, u.email, 'student' as role
       FROM enrollment e
       JOIN student s ON e.student_id = s.student_id

@@ -8,7 +8,7 @@
       "ES2022",
       "DOM",
       "DOM.Iterable",
-      "Node"
+      "DOM"
     ],
     "skipLibCheck": true,
     "moduleResolution": "bundler",

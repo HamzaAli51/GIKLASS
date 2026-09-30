@@ -14,7 +14,7 @@ router.post('/signup', async (req, res) => {
   const details = req.body.details;
 
   try {
-    const existingUser = db.prepare('SELECT * FROM user WHERE email = ?').get(email);
+    const existingUser = await db.prepare('SELECT * FROM user WHERE email = ?').get(email);
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
     }
@@ -22,33 +22,33 @@ router.post('/signup', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     if (role === 'student') {
-      const existingRoll = db.prepare('SELECT student_id FROM student WHERE roll_number = ?').get(details.rollNumber);
+      const existingRoll = await db.prepare('SELECT student_id FROM student WHERE roll_number = ?').get(details.rollNumber);
       if (existingRoll) {
         return res.status(400).json({ error: 'Roll number already registered' });
       }
     }
 
-    const info = db.transaction(() => {
-      const userResult = db.prepare(
+    const userId = await db.transaction(async (transaction) => {
+      const userResult = await transaction.prepare(
         'INSERT INTO user (name, email, password_hash) VALUES (?, ?, ?)'
       ).run(name, email, passwordHash);
 
-      const userId = userResult.lastInsertRowid;
+      const createdUserId = userResult.lastInsertRowid;
 
       if (role === 'student') {
-        db.prepare(
+        await transaction.prepare(
           'INSERT INTO student (user_id, roll_number, programme, year) VALUES (?, ?, ?, ?)'
-        ).run(userId, details.rollNumber, details.programme, details.year);
+        ).run(createdUserId, details.rollNumber, details.programme, details.year);
       } else if (role === 'instructor') {
-        db.prepare(
+        await transaction.prepare(
           'INSERT INTO instructor (user_id, phone, address, department) VALUES (?, ?, ?, ?)'
-        ).run(userId, details.phone, details.address, details.department);
+        ).run(createdUserId, details.phone, details.address, details.department);
       }
 
-      return userId;
-    })();
+      return createdUserId;
+    });
 
-    const token = jwt.sign({ userId: info, email, role }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ userId, email, role }, JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true });
     res.json({ message: 'User created successfully', role });
   } catch (error) {
@@ -62,7 +62,7 @@ router.post('/login', async (req, res) => {
   const email = req.body.email?.trim().toLowerCase();
 
   try {
-    const user: any = db.prepare('SELECT * FROM user WHERE email = ?').get(email);
+    const user: any = await db.prepare('SELECT * FROM user WHERE email = ?').get(email);
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -73,8 +73,8 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if student or instructor
-    const student = db.prepare('SELECT * FROM student WHERE user_id = ?').get(user.user_id);
-    const instructor = db.prepare('SELECT * FROM instructor WHERE user_id = ?').get(user.user_id);
+    const student = await db.prepare('SELECT * FROM student WHERE user_id = ?').get(user.user_id);
+    const instructor = await db.prepare('SELECT * FROM instructor WHERE user_id = ?').get(user.user_id);
     const role = instructor ? 'instructor' : 'student';
 
     const token = jwt.sign({ userId: user.user_id, email, role }, JWT_SECRET, { expiresIn: '7d' });
@@ -91,13 +91,13 @@ router.post('/logout', (req, res) => {
   res.json({ message: 'Logged out' });
 });
 
-router.get('/me', (req, res) => {
+router.get('/me', async (req, res) => {
   const token = req.cookies.token;
   if (!token) return res.status(401).json({ error: 'No token' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    const user: any = db.prepare('SELECT name, email FROM user WHERE user_id = ?').get(decoded.userId);
+    const user: any = await db.prepare('SELECT name, email FROM user WHERE user_id = ?').get(decoded.userId);
     if (!user) {
       res.clearCookie('token');
       return res.status(401).json({ error: 'User not found' });

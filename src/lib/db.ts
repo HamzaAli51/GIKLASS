@@ -1,29 +1,53 @@
 import { createClient } from '@libsql/client';
 
 const client = createClient({
-  url: process.env.TURSO_DATABASE_URL || 'file:giklass.db', // local file in dev
+  url: process.env.TURSO_DATABASE_URL || 'file:giklass.db',
   authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-const db = {
+interface QueryDatabase {
+  prepare(sql: string): {
+    get: (...args: any[]) => Promise<any>;
+    all: (...args: any[]) => Promise<any[]>;
+    run: (...args: any[]) => Promise<{ changes: number; lastInsertRowid: number }>;
+  };
+  exec(sql: string): Promise<any>;
+}
+
+function createDatabase(executor: Pick<typeof client, 'execute' | 'executeMultiple'>) {
+  return {
   prepare(sql: string) {
     return {
       get: async (...args: any[]) => {
-        const r = await client.execute({ sql, args });
+        const r = await executor.execute({ sql, args });
         return r.rows[0] ? ({ ...r.rows[0] } as any) : undefined;
       },
       all: async (...args: any[]) => {
-        const r = await client.execute({ sql, args });
+        const r = await executor.execute({ sql, args });
         return r.rows.map((row) => ({ ...row })) as any[];
       },
       run: async (...args: any[]) => {
-        const r = await client.execute({ sql, args });
+        const r = await executor.execute({ sql, args });
         return { changes: r.rowsAffected, lastInsertRowid: Number(r.lastInsertRowid ?? 0) };
       },
     };
   },
-  exec: (sql: string) => client.executeMultiple(sql),
+  exec: (sql: string) => executor.executeMultiple(sql),
+  transaction: async <T>(callback: (transaction: QueryDatabase) => Promise<T>) => {
+    const transaction = await client.transaction('write');
+    try {
+      const result = await callback(createDatabase(transaction));
+      await transaction.commit();
+      return result;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  },
 };
+}
+
+const db = createDatabase(client);
 
 let ready: Promise<void> | null = null;
 
