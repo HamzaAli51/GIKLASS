@@ -5,5 +5,11 @@
     "server.ts": {
       "includeFiles": "src/**/*.ts"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ]
 }
