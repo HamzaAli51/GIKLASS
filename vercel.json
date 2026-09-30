@@ -3,13 +3,10 @@
   "buildCommand": "npm run build",
   "functions": {
     "server.ts": {
-      "includeFiles": "src/**/*.ts"
+      "includeFiles": [
+        "src/**/*.ts",
+        "public/index.html"
+      ]
     }
-  },
-  "rewrites": [
-    {
-      "source": "/",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }
