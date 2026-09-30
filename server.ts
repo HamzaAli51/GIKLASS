@@ -1,3 +1,7 @@
+import express from 'express';
 import app from './src/server/app.ts';
 
-export default app;
+const server = express();
+server.use(app);
+
+export default server;
