@@ -3,10 +3,7 @@
   "buildCommand": "npm run build",
   "functions": {
     "server.ts": {
-      "includeFiles": [
-        "src/**/*.ts",
-        "public/index.html"
-      ]
+      "includeFiles": "{src/**/*.ts,public/index.html}"
     }
   }
 }
